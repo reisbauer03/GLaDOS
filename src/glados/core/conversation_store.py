@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import threading
 from copy import deepcopy
-from typing import Any
+from typing import Any, Callable
 
 
 class ConversationStore:
@@ -46,8 +46,22 @@ class ConversationStore:
 
         Returns:
             The new length of the conversation history.
+
+        Raises:
+            ValueError: If the message is invalid in the context of the previous messages.
         """
         with self._lock:
+            if message["role"] == "tool":
+                # search for the last message containing the key "tool_calls"
+                idx = ConversationStore._find_last(self._messages, lambda m: "tool_calls" in m)
+                if idx is None:
+                    # tool result without tool call would lead to crashes
+                    raise ValueError("There cannot be a tool output without a previous tool call!")
+                elif idx != len(self._messages) - 1:
+                    # reorder messages so that the tool call is the last message
+                    tool_call_msg = self._messages.pop(idx)
+                    self._messages.append(tool_call_msg)
+
             self._messages.append(message)
             self._version += 1
             return len(self._messages)
@@ -165,3 +179,20 @@ class ConversationStore:
             A shallow copy suitable for iteration.
         """
         return self.snapshot()
+
+    @staticmethod
+    def _find_last(messages: list[dict[str, Any]], predicate: Callable[[dict[str, Any]], bool]) -> int | None:
+        """
+        Find the last message in the given list that satisfies the predicate function.
+        Args:
+            messages: Messages to search
+            predicate: Predicate to use as search criterion
+
+        Returns:
+            Index of the last found message satisfying the predicate.
+        """
+
+        for i in range(len(messages) - 1, -1, -1):
+            if predicate(messages[i]):
+                return i
+        return None
