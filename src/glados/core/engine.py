@@ -113,6 +113,7 @@ class GladosConfig(BaseModel):
     asr_muted: bool = False
     asr_engine: str
     wake_word: str | None
+    wake_word_model_path: Path | None
     voice: str
     announcement: str | None
     llm_headers: dict[str, str] | None = None
@@ -222,6 +223,7 @@ class Glados:
         api_key: str | None = None,
         interruptible: bool = True,
         wake_word: str | None = None,
+        wake_word_path: Path | None = None,
         announcement: str | None = None,
         personality_preprompt: tuple[dict[str, str], ...] = DEFAULT_PERSONALITY_PREPROMPT,
         tool_config: dict[str, Any] | None = None,
@@ -270,6 +272,7 @@ class Glados:
         self.api_key = api_key
         self.interruptible = interruptible
         self.wake_word = wake_word
+        self.wake_word_path = wake_word_path
         self.announcement = announcement
         self.tool_config = tool_config or {}
         self.tool_timeout = tool_timeout
@@ -399,6 +402,7 @@ class Glados:
                 llm_queue=self.llm_queue_priority,
                 asr_model=self._asr_model,
                 wake_word=self.wake_word,
+                wake_word_path=self.wake_word_path,
                 interruptible=self.interruptible,
                 shutdown_event=self.shutdown_event,
                 currently_speaking_event=self.currently_speaking_event,
@@ -851,6 +855,7 @@ class Glados:
             api_key=config.api_key,
             interruptible=config.interruptible,
             wake_word=config.wake_word,
+            wake_word_path=config.wake_word_model_path,
             announcement=config.announcement,
             personality_preprompt=tuple(config.to_chat_messages()),
             tool_config={"slow_clap_audio_path": config.slow_clap_audio_path},
